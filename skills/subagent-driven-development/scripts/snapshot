@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Capture the current working tree as a git tree object WITHOUT committing.
+#
+# In this fork's no-commit model, implementer subagents never commit — they
+# leave their work in the working tree and the controller commits after the
+# task review passes. To review one task's work in isolation the controller
+# needs a stable handle on "the tree after this task" that it can diff against
+# "the tree before". This stages everything into a throwaway index and writes
+# a tree object, printing its SHA. No commit, no branch move, no worktree, and
+# the real index/staging area is left untouched.
+#
+# Usage: snapshot
+#   AFTER=$(scripts/snapshot)            # tree SHA of current working tree
+#   BEFORE=$(git rev-parse HEAD^{tree})  # tree SHA before the task (clean tree)
+#   scripts/review-package "$BEFORE" "$AFTER"
+set -euo pipefail
+
+dir=$(git rev-parse --git-path sdd)
+mkdir -p "$dir"
+dir=$(cd "$dir" && pwd)
+
+# Throwaway index so we never disturb the user's real staging area. Unique per
+# process so concurrent sessions cannot collide.
+tmpidx="$dir/snapshot.$$.index"
+trap 'rm -f "$tmpidx"' EXIT
+
+# Stage the entire working tree (respecting .gitignore) into the temp index,
+# then hash it into a tree object. -A captures additions, modifications, and
+# deletions relative to an empty index = a faithful image of the working tree.
+GIT_INDEX_FILE="$tmpidx" git add -A
+GIT_INDEX_FILE="$tmpidx" git write-tree

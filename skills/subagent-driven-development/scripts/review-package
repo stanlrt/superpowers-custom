@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# Generate a review package: a stat summary and the net diff with extended
+# context, written to a file the reviewer reads in one call.
+#
+# This fork runs the no-commit model: implementer subagents leave their work
+# in the working tree and the controller commits after review. BASE and HEAD
+# are therefore tree-ish (tree SHAs from `scripts/snapshot` or `HEAD^{tree}`),
+# not commits — though plain commits still work, since `git diff A B` accepts
+# either. There is no commit list to show because the task is not yet
+# committed.
+#
+# Usage: review-package BASE HEAD [-- PATHSPEC...]
+#   BASE        tree-ish before the task (e.g. HEAD^{tree}, or a snapshot SHA)
+#   HEAD        tree-ish after the task  (e.g. `scripts/snapshot` output)
+#   -- PATHSPEC limit the diff to these paths — use for one task inside a
+#               parallel disjoint-file batch, so each reviewer sees only its
+#               task's files even though all batch work sits in one tree.
+#
+# OUTFILE is auto-named under <git-dir>/sdd/ — unique per range (and per
+# pathspec), so concurrent sessions and parallel per-task reviews never
+# collide and a re-review after fixes always gets a distinctly named file.
+set -euo pipefail
+
+if [ $# -lt 2 ]; then
+  echo "usage: review-package BASE HEAD [-- PATHSPEC...]" >&2
+  exit 2
+fi
+
+base=$1
+head=$2
+shift 2
+
+paths=()
+if [ $# -gt 0 ]; then
+  if [ "$1" = "--" ]; then
+    shift
+    paths=("$@")
+  else
+    echo "usage: review-package BASE HEAD [-- PATHSPEC...]" >&2
+    exit 2
+  fi
+fi
+
+git rev-parse --verify --quiet "$base^{tree}" >/dev/null 2>&1 || git rev-parse --verify --quiet "$base" >/dev/null || { echo "bad BASE: $base" >&2; exit 2; }
+git rev-parse --verify --quiet "$head^{tree}" >/dev/null 2>&1 || git rev-parse --verify --quiet "$head" >/dev/null || { echo "bad HEAD: $head" >&2; exit 2; }
+
+dir=$(git rev-parse --git-path sdd)
+mkdir -p "$dir"
+dir=$(cd "$dir" && pwd)
+name="review-$(git rev-parse --short "$base")..$(git rev-parse --short "$head")"
+if [ ${#paths[@]} -gt 0 ]; then
+  # Keep the file unique when several per-task reviews share one BASE..HEAD
+  # range but cover different files (a parallel batch).
+  suffix=$(printf '%s\n' "${paths[@]}" | cksum | cut -d' ' -f1)
+  name="${name}-${suffix}"
+fi
+out="$dir/${name}.diff"
+
+{
+  echo "# Review package: ${base}..${head}"
+  if [ ${#paths[@]} -gt 0 ]; then
+    echo "# Scoped to: ${paths[*]}"
+  fi
+  echo "# (no-commit model: changes are uncommitted in the working tree)"
+  echo
+  echo "## Files changed"
+  git diff --stat "$base" "$head" ${paths[@]:+-- "${paths[@]}"}
+  echo
+  echo "## Diff"
+  git diff -U10 "$base" "$head" ${paths[@]:+-- "${paths[@]}"}
+} > "$out"
+
+files=$(git diff --name-only "$base" "$head" ${paths[@]:+-- "${paths[@]}"} | wc -l | tr -d ' ')
+echo "wrote ${out}: ${files} file(s) changed, $(wc -c < "$out" | tr -d ' ') bytes"
