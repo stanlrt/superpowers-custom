@@ -5,17 +5,6 @@ packaged as a standalone Claude Code plugin. It is a **drop-in replacement** for
 official `superpowers` plugin — you install this and disable the official one, so there is
 never a duplicate or a conflicting copy of any skill.
 
-## Why a fork instead of a patch?
-
-The customizations live in three skills. Earlier this was distributed as a patch applied
-into the official plugin's cache — but Claude Code wipes that cache on every superpowers
-update, silently reverting the skills to stock (which, for `subagent-driven-development`,
-means subagents start committing again — the exact behavior the fork removes).
-
-A separate plugin lives **outside** the superpowers cache, so an update can't touch it.
-Nothing to reapply, nothing to detect, no drift. The cost is that you merge upstream
-yourself when you want it (`git merge upstream`, conflicts only in the 3 custom skills).
-
 ## What's different from upstream
 
 - **subagent-driven-development — no-commit model:** implementer/fix subagents NEVER
