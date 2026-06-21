@@ -15,9 +15,13 @@
 #   scripts/review-package "$BEFORE" "$AFTER"
 set -euo pipefail
 
-dir=$(git rev-parse --git-path sdd)
-mkdir -p "$dir"
-dir=$(cd "$dir" && pwd)
+# Use the shared SDD workspace (<repo-root>/.superpowers/sdd/) for scratch, via
+# the sibling helper. The workspace lives in the working tree, not under .git/,
+# because Claude Code treats .git/ as a protected path and denies agent writes
+# there. The workspace self-ignores (.gitignore '*'), so the temp index below
+# never lands in the snapshot tree. Keeping every SDD script on one helper
+# avoids path drift.
+dir=$("$(cd "$(dirname "$0")" && pwd)/sdd-workspace")
 
 # Throwaway index so we never disturb the user's real staging area. Unique per
 # process so concurrent sessions cannot collide.

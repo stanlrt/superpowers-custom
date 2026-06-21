@@ -51,7 +51,7 @@ issue** so GitHub links the two (the branch shows under the issue's
 Development section). Two entry points feed this:
 
 **Entry A — started from chat (spec not yet an issue).** You brainstormed in
-chat (superpowers:brainstorming) and a spec landed. Write that spec to a new
+chat (superpowers-custom:brainstorming) and a spec landed. Write that spec to a new
 issue, then branch from it:
 
 ```bash
@@ -83,7 +83,7 @@ gh issue develop "$issue_num" --name "$branch" --base main
 If you are NOT using a worktree, add `--checkout` to switch to the branch in
 place and skip to Step 2. Otherwise carry `$branch` into Step 1 and attach the
 worktree to the existing branch. The plan you write next
-(superpowers:writing-plans) draws its requirements from the issue spec.
+(superpowers-custom:writing-plans) draws its requirements from the issue spec.
 
 ## Step 1: Create Isolated Workspace
 

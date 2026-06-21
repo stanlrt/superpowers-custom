@@ -20,7 +20,7 @@ isolation and could entangle parallel tasks. See [Committing](#committing).
 
 **Parallelisation (disjoint files only).** Tasks whose file sets do not overlap
 may run as concurrent subagents in the one shared feature worktree — no extra
-worktree per subagent. Use superpowers:dispatching-parallel-agents to fan them
+worktree per subagent. Use superpowers-custom:dispatching-parallel-agents to fan them
 out. **Dispatch them in the background (non-blocking) in a single batch** so
 they run concurrently — a blocking dispatch waits for each to finish and
 serializes the batch, defeating the point. In Claude Code, launch each with the
@@ -83,7 +83,7 @@ digraph process {
     "Read plan, note context and global constraints, create todos" [shape=box];
     "More tasks remain?" [shape=diamond];
     "Dispatch final code reviewer subagent (../requesting-code-review/code-reviewer.md)" [shape=box];
-    "Use superpowers:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
+    "Use superpowers-custom:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
 
     "Read plan, note context and global constraints, create todos" -> "Dispatch implementer subagent (./implementer-prompt.md)";
     "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
@@ -99,7 +99,7 @@ digraph process {
     "Mark task complete in todo list and progress ledger" -> "More tasks remain?";
     "More tasks remain?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
     "More tasks remain?" -> "Dispatch final code reviewer subagent (../requesting-code-review/code-reviewer.md)" [label="no"];
-    "Dispatch final code reviewer subagent (../requesting-code-review/code-reviewer.md)" -> "Use superpowers:finishing-a-development-branch";
+    "Dispatch final code reviewer subagent (../requesting-code-review/code-reviewer.md)" -> "Use superpowers-custom:finishing-a-development-branch";
 }
 ```
 
@@ -304,7 +304,7 @@ task, after its review verdict is clean:
 After a sequential task's commit the working tree is clean again, so the next
 task's BASE is simply `HEAD^{tree}`. Never let a subagent commit on your
 behalf; never push until the whole branch is done and you reach
-superpowers:finishing-a-development-branch.
+superpowers-custom:finishing-a-development-branch.
 
 ## Durable Progress
 
@@ -314,7 +314,7 @@ sequences — the single most expensive failure observed. Track progress in
 a ledger file, not only in todos.
 
 - At skill start, check for a ledger:
-  `cat "$(git rev-parse --git-path sdd)/progress.md"`. Tasks listed there
+  `cat "$(git rev-parse --show-toplevel)/.superpowers/sdd/progress.md"`. Tasks listed there
   as complete are DONE — do not re-dispatch them; resume at the first task
   not marked complete.
 - When a task's review comes back clean AND you have committed it (you, the
@@ -324,12 +324,14 @@ a ledger file, not only in todos.
 - The ledger is your recovery map: the commits it names exist in git even
   when your context no longer remembers creating them. After compaction,
   trust the ledger and `git log` over your own recollection.
+- `git clean -fdx` will destroy the ledger (it's git-ignored scratch); if
+  that happens, recover from `git log`.
 
 ## Prompt Templates
 
 - [implementer-prompt.md](implementer-prompt.md) - Dispatch implementer subagent
 - [task-reviewer-prompt.md](task-reviewer-prompt.md) - Dispatch task reviewer subagent (spec compliance + code quality)
-- Final whole-branch review: use superpowers:requesting-code-review's [code-reviewer.md](../requesting-code-review/code-reviewer.md)
+- Final whole-branch review: use superpowers-custom:requesting-code-review's [code-reviewer.md](../requesting-code-review/code-reviewer.md)
 
 ## Example Workflow
 
@@ -474,13 +476,13 @@ Done!
 ## Integration
 
 **Required workflow skills:**
-- **superpowers:using-git-worktrees** - Ensures isolated workspace (creates one or verifies existing)
-- **superpowers:writing-plans** - Creates the plan this skill executes
-- **superpowers:requesting-code-review** - Code review template for the final whole-branch review
-- **superpowers:finishing-a-development-branch** - Complete development after all tasks
+- **superpowers-custom:using-git-worktrees** - Ensures isolated workspace (creates one or verifies existing)
+- **superpowers-custom:writing-plans** - Creates the plan this skill executes
+- **superpowers-custom:requesting-code-review** - Code review template for the final whole-branch review
+- **superpowers-custom:finishing-a-development-branch** - Complete development after all tasks
 
 **Subagents should use:**
-- **superpowers:test-driven-development** - Subagents follow TDD for each task
+- **superpowers-custom:test-driven-development** - Subagents follow TDD for each task
 
 **Alternative workflow:**
-- **superpowers:executing-plans** - Use for parallel session instead of same-session execution
+- **superpowers-custom:executing-plans** - Use for parallel session instead of same-session execution

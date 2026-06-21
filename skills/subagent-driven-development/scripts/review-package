@@ -16,9 +16,11 @@
 #               parallel disjoint-file batch, so each reviewer sees only its
 #               task's files even though all batch work sits in one tree.
 #
-# OUTFILE is auto-named under <git-dir>/sdd/ — unique per range (and per
-# pathspec), so concurrent sessions and parallel per-task reviews never
-# collide and a re-review after fixes always gets a distinctly named file.
+# OUTFILE is auto-named under the SDD workspace (<repo-root>/.superpowers/sdd/,
+# resolved via the sibling `sdd-workspace` helper so every SDD script agrees on
+# one location) — unique per range (and per pathspec), so concurrent sessions
+# and parallel per-task reviews never collide and a re-review after fixes
+# always gets a distinctly named file.
 set -euo pipefail
 
 if [ $# -lt 2 ]; then
@@ -44,9 +46,7 @@ fi
 git rev-parse --verify --quiet "$base^{tree}" >/dev/null 2>&1 || git rev-parse --verify --quiet "$base" >/dev/null || { echo "bad BASE: $base" >&2; exit 2; }
 git rev-parse --verify --quiet "$head^{tree}" >/dev/null 2>&1 || git rev-parse --verify --quiet "$head" >/dev/null || { echo "bad HEAD: $head" >&2; exit 2; }
 
-dir=$(git rev-parse --git-path sdd)
-mkdir -p "$dir"
-dir=$(cd "$dir" && pwd)
+dir=$("$(cd "$(dirname "$0")" && pwd)/sdd-workspace")
 name="review-$(git rev-parse --short "$base")..$(git rev-parse --short "$head")"
 if [ ${#paths[@]} -gt 0 ]; then
   # Keep the file unique when several per-task reviews share one BASE..HEAD
