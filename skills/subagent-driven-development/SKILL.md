@@ -18,9 +18,15 @@ confirmed its changes do not collide with other tasks. You hold the whole-run
 overview; a subagent committing mid-stream would break per-task review
 isolation and could entangle parallel tasks. See [Committing](#committing).
 
-**Parallelisation (disjoint files only).** Tasks whose file sets do not overlap
-may run as concurrent subagents in the one shared feature worktree — no extra
-worktree per subagent. Use superpowers-custom:dispatching-parallel-agents to fan them
+**Parallelisation (disjoint files AND independent).** Tasks run as concurrent
+subagents in the one shared feature worktree — no extra worktree per
+subagent — only when their file sets do not overlap *and* neither depends on
+the other's output (a symbol/interface/schema/contract one creates and the
+other consumes). Disjoint files alone is not enough: a dependency forces
+ordering even when no file is shared. The batches come from the mandatory
+Pre-Flight batch plan (see [Pre-Flight Plan Review](#pre-flight-plan-review))
+— you build the dependency DAG and partition up front, you do not decide
+per-task as you go. Use superpowers-custom:dispatching-parallel-agents to fan them
 out. **Dispatch them in the background (non-blocking) in a single batch** so
 they run concurrently — a blocking dispatch waits for each to finish and
 serializes the batch, defeating the point. In Claude Code, launch each with the
@@ -105,7 +111,10 @@ digraph process {
 
 ## Pre-Flight Plan Review
 
-Before dispatching Task 1, scan the plan once for conflicts:
+Before dispatching Task 1, scan the plan once. This scan has two required
+outputs — a conflict list AND a batch plan. Do both before any dispatch.
+
+**1. Conflict scan.** Look for:
 
 - tasks that contradict each other or the plan's Global Constraints
 - anything the plan explicitly mandates that the review rubric treats as a
@@ -116,6 +125,32 @@ each finding beside the plan text that mandates it, asking which governs —
 before execution begins, not one interrupt per discovery mid-plan. If the
 scan is clean, proceed without comment. The review loop remains the net for
 conflicts that only emerge from implementation.
+
+**2. Batch plan (mandatory — do not default to sequential).** Two tasks may
+share a batch only if BOTH hold:
+
+- **Disjoint files** — their file sets do not overlap, so neither overwrites
+  the other (prevents write collision).
+- **Independent** — neither consumes a thing the other produces. Even with
+  disjoint files, task B depends on task A when B's code references a symbol,
+  interface, signature, schema, constant, route, or contract that A creates
+  or changes. A produces, B consumes → B runs in a later batch than A.
+  File-disjointness does not imply independence.
+
+Build the plan as a dependency DAG, not a file-overlap check alone: nodes are
+tasks, draw an edge A→B when B depends on A's output. Then layer it —
+batch 1 is every task with no unmet dependency; batch 2 is every task whose
+dependencies are all in batch 1; and so on. Within a layer, split any pair
+that shares a file into separate batches (or sequence them). Each resulting
+batch holds only tasks that are mutually independent AND file-disjoint.
+
+Write this batch plan into the progress ledger before dispatching — it is the
+execution order, not an optimization you bolt on later. Do NOT walk the tasks
+one-by-one and decide parallelism reactively at each step; that defaults to
+sequential and silently discards the speedup. A batch of one task is fine —
+but you must have partitioned to know that, not assumed it. If you cannot
+derive a task's file set or its dependencies from the plan, that is a plan
+gap: resolve it before execution, not by falling back to sequential.
 
 ## Model Selection
 
@@ -439,8 +474,14 @@ Done!
   leave work uncommitted; only you commit, after the review passes
 - Commit a task before its review is clean, or before verifying it touched
   only its own files (no collision with other tasks)
-- Dispatch parallel implementation subagents whose file sets overlap — only
-  disjoint-file tasks may run concurrently (use dispatching-parallel-agents)
+- Dispatch parallel implementation subagents whose file sets overlap, OR whose
+  work depends on another in-flight task's output (disjoint files but B
+  consumes A's interface/symbol/schema) — concurrent tasks must be both
+  file-disjoint AND independent (use dispatching-parallel-agents)
+- Default to sequential execution without first partitioning tasks into
+  disjoint-file batches in Pre-Flight — "sequential is safe" applied to
+  tasks that could run concurrently silently throws away the speedup. Build
+  the batch plan before Task 1; don't decide parallelism reactively per task
 - Make a subagent read the whole plan file (hand it its task brief —
   `scripts/task-brief` — instead)
 - Skip scene-setting context (subagent needs to understand where task fits)
