@@ -28,7 +28,7 @@ Everything else tracks upstream. Skills are namespaced `superpowers-custom:` (e.
 /plugin install superpowers-custom@superpowers-custom
 ```
 
-Then **disable the official superpowers plugin** so only this one is active (otherwise
+Then **disable the official superpowers plugin** if you had installed it before, so only the custom one is active (otherwise
 both load and the model sees two copies of every skill):
 
 - `/plugin` → manage → disable `superpowers@claude-plugins-official`
