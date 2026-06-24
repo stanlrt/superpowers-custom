@@ -7,23 +7,23 @@ never a duplicate or a conflicting copy of any skill.
 
 ## What's different from upstream
 
-- **subagent-driven-development — no-commit model:** implementer/fix subagents NEVER
-  commit; the **controller** commits each task after its review passes and a
+- **Subagents do not commit**, the **orhestrator agent** commits each task after its review passes and a
   file-collision check. Per-task review uses git **tree snapshots** (`scripts/snapshot` +
   `review-package` reworked to diff tree-ish, with `-- <paths>` to scope one task of a
-  parallel batch). No commit list — the work is uncommitted by design.
-- **Disjoint-file parallel subagents:** tasks with non-overlapping files run as concurrent
-  background/non-blocking subagents; reviewed per file-set, committed per task.
-- **Model policy:** Sonnet implementers for step-based plans; escalate to the
+  parallel batch).
+- **Parallel subagents:** orchestrator crafts plan with parallelisation in mind, using a DAG to track task collisions and dependencies, and prevent inter-subagent file write race conditions.
+- **Tiny token usage:** Sonnet implementers for step-based plans; escalate to the
   most-capable "advisor" model only when the **plan itself** is defective.
-- **finishing-a-development-branch:** PR body built from the repo's PR template and passed
-  via `--body-file`; after opening, monitor CI + Copilot + Code-Quality comments.
-- **using-git-worktrees:** GitHub **issue → linked branch** entry points.
+- **GitHub centric PR workflow:** PR body built from the repo's PR template and passed
+  via `--body-file`; CI monitoring + Copilot comments + Code-Quality comments resolution.
+- **GitHub centric issue and branching workflow:** Use GH issues to store specs and manage branches.
 
 Everything else tracks upstream. Skills are namespaced `superpowers-custom:` (e.g.
 `superpowers-custom:subagent-driven-development`).
 
 ## Install (Claude Code)
+
+Ensure you disable the official `superpower` plugin, else they'll conflict.
 
 ```text
 /plugin marketplace add stanlrt/superpowers-custom
