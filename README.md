@@ -23,8 +23,6 @@ Everything else tracks upstream. Skills are namespaced `superpowers-custom:` (e.
 
 ## Install (Claude Code)
 
-Ensure you disable the official `superpower` plugin, else they'll conflict.
-
 ```text
 /plugin marketplace add stanlrt/superpowers-custom
 /plugin install superpowers-custom@superpowers-custom
