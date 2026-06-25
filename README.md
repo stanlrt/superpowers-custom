@@ -7,12 +7,12 @@ never a duplicate or a conflicting copy of any skill.
 
 ## What's different from upstream
 
+- **DAG-based parallel subagents:** orchestrator crafts plan with parallelisation in mind, using a DAG to track task collisions and dependencies, and prevent inter-subagent file write race conditions.
 - **Subagents do not commit**, the **orhestrator agent** commits each task after its review passes and a
   file-collision check. Per-task review uses git **tree snapshots** (`scripts/snapshot` +
   `review-package` reworked to diff tree-ish, with `-- <paths>` to scope one task of a
   parallel batch).
-- **Parallel subagents:** orchestrator crafts plan with parallelisation in mind, using a DAG to track task collisions and dependencies, and prevent inter-subagent file write race conditions.
-- **Tiny token usage:** Sonnet implementers for step-based plans; escalate to the
+- **Reduced token usage:** Sonnet implementers for step-based plans; escalate to the
   most-capable "advisor" model only when the **plan itself** is defective.
 - **GitHub centric PR workflow:** PR body built from the repo's PR template and passed
   via `--body-file`; CI monitoring + Copilot comments + Code-Quality comments resolution.
